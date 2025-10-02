@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Toxicity Checker</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 2rem 1rem;
+        color: #333;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 24px;
+        padding: 3rem 2rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+      }
+
+      .header p {
+        color: #666;
+        font-size: 1.1rem;
+        font-weight: 400;
+      }
+
+      .input-section {
+        margin-bottom: 2rem;
+      }
+
+      .input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 1.5rem;
+        font-size: 1rem;
+        font-family: inherit;
+        border: 2px solid #e1e5e9;
+        border-radius: 16px;
+        background: #fff;
+        resize: vertical;
+        transition: all 0.3s ease;
+        outline: none;
+      }
+
+      textarea:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        transform: translateY(-2px);
+      }
+
+      textarea::placeholder {
+        color: #999;
+      }
+
+      .check-button {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .check-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      }
+
+      .check-button:active {
+        transform: translateY(0);
+      }
+
+      .check-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .loading {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+      }
+
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .results {
+        margin-top: 2rem;
+        display: none;
+        min-height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid #667eea;
+        border-radius: 12px;
+        padding: 1rem;
+      }
+
+      .results.show {
+        display: block;
+        animation: fadeInUp 0.5s ease;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .results-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .results-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      }
+
+      .result-card {
+        background: #fff;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f0f0f0;
+        transition: all 0.3s ease;
+      }
+
+      .result-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+      }
+
+      .result-label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        text-transform: capitalize;
+        font-size: 1rem;
+      }
+
+      .result-score {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .progress-bar {
+        height: 8px;
+        background: #f0f0f0;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+      }
+
+      .progress-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.8s ease;
+      }
+
+      .severity {
+        font-size: 0.9rem;
+        font-weight: 500;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        display: inline-block;
+      }
+
+      .severity.low {
+        background: #e8f5e8;
+        color: #2d5a2d;
+      }
+      .severity.medium {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .severity.high {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .severity.very-high {
+        background: #f5c6cb;
+        color: #721c24;
+      }
+
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 1rem;
+        border-radius: 12px;
+        margin-top: 1rem;
+        border: 1px solid #f5c6cb;
+      }
+
+      .char-counter {
+        text-align: right;
+        font-size: 0.9rem;
+        color: #666;
+        margin-top: 0.5rem;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 2rem 1rem;
+          margin: 1rem;
+        }
+
+        .header h1 {
+          font-size: 2rem;
+        }
+
+        .results-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Toxicity Checker 🤖</h1>
+        <p>Analyze text for toxic content using AI-powered detection</p>
+      </div>
+
+      <div class="input-section">
+        <div class="input-group">
+          <textarea
+            id="inputText"
+            placeholder="Enter text to analyze for toxicity..."
+            maxlength="1000"
+          ></textarea>
+          <div class="char-counter">
+            <span id="charCount">0</span>/1000 characters
+          </div>
+        </div>
+        <button class="check-button" onclick="checkToxicity()">
+          <span class="button-text">Check Toxicity</span>
+          <div class="loading">
+            <div class="spinner"></div>
+            <span>Analyzing...</span>
+          </div>
+        </button>
+      </div>
+
+      <div class="results" id="results">
+        <div class="results-header">
+          <span>🔍 Analysis Results</span>
+        </div>
+        <div class="results-grid" id="resultsGrid"></div>
+      </div>
+    </div>
+
+    <script>
+      // Wait for DOM to be fully loaded
+      document.addEventListener('DOMContentLoaded', function () {
+        const inputText = document.getElementById('inputText');
+        const charCount = document.getElementById('charCount');
+        const button = document.querySelector('.check-button');
+        const buttonText = document.querySelector('.button-text');
+        const loading = document.querySelector('.loading');
+        const results = document.getElementById('results');
+        const resultsGrid = document.getElementById('resultsGrid');
+
+        // Check if all elements exist
+        if (
+          !inputText ||
+          !charCount ||
+          !button ||
+          !buttonText ||
+          !loading ||
+          !results ||
+          !resultsGrid
+        ) {
+          console.error('Some DOM elements not found:', {
+            inputText: !!inputText,
+            charCount: !!charCount,
+            button: !!button,
+            buttonText: !!buttonText,
+            loading: !!loading,
+            results: !!results,
+            resultsGrid: !!resultsGrid,
+          });
+          return;
+        }
+
+        // Character counter
+        inputText.addEventListener('input', () => {
+          charCount.textContent = inputText.value.length;
+        });
+
+        // Enter key to submit
+        inputText.addEventListener('keydown', (e) => {
+          if (e.ctrlKey && e.key === 'Enter') {
+            checkToxicity();
+          }
+        });
+
+        function getSeverityClass(score) {
+          if (score >= 0.8) return 'very-high';
+          if (score >= 0.6) return 'high';
+          if (score >= 0.3) return 'medium';
+          return 'low';
+        }
+
+        function getSeverityText(score) {
+          if (score >= 0.8) return 'Very High';
+          if (score >= 0.6) return 'High';
+          if (score >= 0.3) return 'Medium';
+          return 'Low';
+        }
+
+        function getScoreColor(score) {
+          if (score >= 0.8) return '#dc3545';
+          if (score >= 0.6) return '#fd7e14';
+          if (score >= 0.3) return '#ffc107';
+          return '#28a745';
+        }
+
+        // Make checkToxicity globally accessible
+        window.checkToxicity = async function () {
+          const text = inputText.value.trim();
+
+          if (!text) {
+            alert('Please enter some text to analyze.');
+            return;
+          }
+
+          // Show loading state
+          button.disabled = true;
+          buttonText.style.display = 'none';
+          loading.style.display = 'flex';
+          results.style.display = 'none';
+
+          try {
+            const res = await fetch('/check', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text }),
+            });
+
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+
+            const data = await res.json();
+            displayResults(data);
+          } catch (error) {
+            console.error('Error:', error);
+            showError('Failed to analyze text. Please try again.');
+          } finally {
+            // Hide loading state
+            button.disabled = false;
+            buttonText.style.display = 'block';
+            loading.style.display = 'none';
+          }
+        };
+
+        function displayResults(data) {
+          resultsGrid.innerHTML = '';
+
+          // Handle nested array format from Hugging Face API
+          const toxicityResults =
+            Array.isArray(data) && Array.isArray(data[0]) ? data[0] : data;
+
+          if (!toxicityResults || !Array.isArray(toxicityResults)) {
+            showError('Invalid data format received from server.');
+            return;
+          }
+
+          toxicityResults.forEach((item) => {
+            const score = item.score;
+            const percentage = Math.round(score * 100);
+            const decimalPercentage = (score * 100).toFixed(3);
+            const severityClass = getSeverityClass(score);
+            const severityText = getSeverityText(score);
+            const scoreColor = getScoreColor(score);
+
+            // For very low scores, show a minimum width for visibility
+            const displayWidth =
+              percentage < 1 ? Math.max(percentage, 0.1) : percentage;
+
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.innerHTML = `
+              <div class="result-label">${item.label.replace('_', ' ')}</div>
+              <div class="result-score" style="color: ${scoreColor}">
+                ${percentage < 1 ? decimalPercentage + '%' : percentage + '%'}
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${displayWidth}%; background: ${scoreColor}"></div>
+              </div>
+              <div class="severity ${severityClass}">${severityText}</div>
+              <div class="raw-score" style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
+                Raw score: ${score.toFixed(6)}
+              </div>
+            `;
+
+            resultsGrid.appendChild(card);
+          });
+
+          // Animate progress bars
+          setTimeout(() => {
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach((bar) => {
+              const width = bar.style.width;
+              bar.style.width = '0%';
+              setTimeout(() => {
+                bar.style.width = width;
+              }, 100);
+            });
+          }, 100);
+
+          results.style.display = 'block'; // Reset inline display style
+          results.classList.add('show');
+        }
+
+        function showError(message) {
+          results.innerHTML = `
+            <div class="error">
+              <strong>Error:</strong> ${message}
+            </div>
+          `;
+          results.classList.add('show');
+        }
+      }); // End of DOMContentLoaded
+    </script>
+  </body>
+</html>

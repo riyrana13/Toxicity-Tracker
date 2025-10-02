@@ -58,3 +58,8 @@ $ npm run test:cov
 ```
 
 # Toxicity-Tracker
+<p align="left">
+  <img src="screenshots/main.png" alt="main UI" width="200" style="margin-right: 10px;"/>
+  <img src="screenshots/positive.png" alt="positive response" width="200" style="margin-right: 10px;"/>
+  <img src="screenshots/negative.png" alt="negative response" width="200" style="margin-right: 10px;"/>
+</p>
